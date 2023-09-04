@@ -102,6 +102,13 @@ public partial class CasServiceApi : IHttpApiServiceBase
         return response.IsSuccessStatusCode;
     }
 
+    public async Task<string?> AuthenticateService(string serviceUrl)
+    {
+        var response = await _httpClient.GetAsync($"https://cas.paas.cdut.edu.cn/cas/login?service={WebUtility.HtmlEncode(serviceUrl)}");
+        return response.Headers.Location?.ToString();
+    }
+    
+    
     private string EncryptPassword(string password)
     {
         if (password.StartsWith("__RSA__")) return password;

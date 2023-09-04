@@ -17,7 +17,7 @@ public class CasCliCommander : ICliCommander
         _casOptions = casOptions;
     }
 
-    public async Task RequestLoginAsync()
+    public async Task EnterCommander()
     {
         var isLogined = false;
         while (!isLogined)

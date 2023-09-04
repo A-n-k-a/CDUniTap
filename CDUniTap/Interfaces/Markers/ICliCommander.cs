@@ -2,5 +2,5 @@
 
 public interface ICliCommander
 {
-    
+    public Task EnterCommander();
 }

@@ -39,5 +39,8 @@ progress.StopTask();
 if (!File.Exists("config.json"))
 {
     var cliCommander = app.Services.GetRequiredService<CasCliCommander>();
-    await cliCommander.RequestLoginAsync();
+    await cliCommander.EnterCommander();
 }
+
+var menuCommander = app.Services.GetRequiredService<MenuCliCommander>();
+await menuCommander.EnterCommander();
