@@ -14,12 +14,12 @@ namespace CDUniTap.Services.Api;
 public partial class CasServiceApi : IHttpApiServiceBase
 {
     private readonly HttpClient _httpClient;
-    private readonly IOptions<CasServiceApiOptions> _options;
+    private readonly CasServiceApiOptions _options;
 
     private static readonly RSACryptoServiceProvider RsaProvider = CreateRsaProviderFromPublicKey(
         "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyor3CX6A6U4EoSHawtALiJoB0CkJnb/wmVkcVT5EmNupGVrVSeJo80ZAxsgd9S1CZVXxTXtJ7XjsqnzR64Qvrn+tdvj9Ck5k/6Tnp6HoKU/AQxA3tQ5Zqw6D6ihPOyVV4z4cdK5wjzEBNPhJuTjjzP4VQ4h4VseWNbfhXGK3vSes8oNn5Wwor9r1UbEJP/ZMHrDJxAcwe0GPvebAqEp4O5ZcTtWnq+/qkoUB6z/52EnCMltoPmuMC+o3fWdICBf4q70oSDClfuhLVi4mRT2K5UUH8fsxEe6oPtkvk9vVCCOZRmo0MXpXZiIqdZOtgcBzn/0mzoNd58KxeIy0ginjfwIDAQAB");
 
-    public CasServiceApi(HttpClient httpClient, IOptions<CasServiceApiOptions> options)
+    public CasServiceApi(HttpClient httpClient, CasServiceApiOptions options)
     {
         _httpClient = httpClient;
         _options = options;
@@ -58,9 +58,9 @@ public partial class CasServiceApi : IHttpApiServiceBase
 
         if (!response.IsSuccessStatusCode) return response.IsSuccessStatusCode;
         if (!result.Contains("successRedirectUrl")) return false;
-        _options.Value.Password = encryptedPassword;
-        _options.Value.Username = username;
-        _options.Value.StudentId = LoginSuccessfulStudentIdRegex().Match(result).Groups[1].Value;
+        _options.Password = encryptedPassword;
+        _options.Username = username;
+        _options.StudentId = LoginSuccessfulStudentIdRegex().Match(result).Groups[1].Value;
         return response.IsSuccessStatusCode;
     }
 
@@ -88,7 +88,7 @@ public partial class CasServiceApi : IHttpApiServiceBase
 
         if (!response.IsSuccessStatusCode) return response.IsSuccessStatusCode;
         if (!result.Contains("successRedirectUrl")) return false;
-        _options.Value.StudentId = LoginSuccessfulStudentIdRegex().Match(result).Groups[1].Value;
+        _options.StudentId = LoginSuccessfulStudentIdRegex().Match(result).Groups[1].Value;
         return response.IsSuccessStatusCode;
     }
 

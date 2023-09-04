@@ -8,10 +8,10 @@ namespace CDUniTap.Cli;
 
 public class MenuCliCommander : ICliCommander
 {
-    private readonly IOptions<CasServiceApiOptions> _options;
+    private readonly CasServiceApiOptions _options;
     private readonly IServiceProvider _service;
 
-    public MenuCliCommander(IOptions<CasServiceApiOptions> options, IServiceProvider service)
+    public MenuCliCommander(CasServiceApiOptions options, IServiceProvider service)
     {
         _options = options;
         _service = service;
@@ -19,7 +19,7 @@ public class MenuCliCommander : ICliCommander
     
     public async Task EnterCommander()
     {
-        AnsiConsole.MarkupLine($"欢迎 [green]{_options.Value.StudentId}[/] 使用客户端");
+        AnsiConsole.MarkupLine($"欢迎 [green]{_options.StudentId}[/] 使用客户端");
         var requestedService = AnsiConsole.Prompt(new SelectionPrompt<string>()
                                .Title("请选择你要登录的系统")
                                .AddChoices("统一支付平台 (电费查缴)"));
