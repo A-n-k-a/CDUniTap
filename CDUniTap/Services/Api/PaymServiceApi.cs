@@ -8,7 +8,7 @@ using Spectre.Console;
 
 namespace CDUniTap.Services.Api;
 
-public partial class PaymServiceApi : IHttpApiServiceBase
+public partial class PaymServiceApi : IHttpApiServiceBase, ICasAuthenticatedApi
 {
     private readonly HttpClient _httpClient;
     private readonly CasServiceApi _casService;

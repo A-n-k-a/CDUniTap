@@ -22,12 +22,17 @@ public class MenuCliCommander : ICliCommander
         AnsiConsole.MarkupLine($"欢迎 [green]{_options.StudentId}[/] 使用客户端");
         var requestedService = AnsiConsole.Prompt(new SelectionPrompt<string>()
                                .Title("请选择你要登录的系统")
-                               .AddChoices("统一支付平台 (电费查缴)"));
+                               .AddChoices("统一支付平台 (电费查缴)")
+                               .AddChoices("新版教务系统"));
         switch (requestedService)
         {
             case "统一支付平台 (电费查缴)":
                 var paym = _service.GetRequiredService<PaymCliCommander>();
                 await paym.EnterCommander();
+                break;
+            case "新版教务系统":
+                var jw = _service.GetRequiredService<JiaoWuCliCommander>();
+                await jw.EnterCommander();
                 break;
         }
     }
