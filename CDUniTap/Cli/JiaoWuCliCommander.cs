@@ -1,7 +1,13 @@
 ﻿using System.Text.RegularExpressions;
 using CDUniTap.Interfaces.Markers;
 using CDUniTap.Services.Api;
+using Ical.Net;
+using Ical.Net.CalendarComponents;
+using Ical.Net.DataTypes;
+using Ical.Net.Serialization;
 using Spectre.Console;
+using Calendar = Ical.Net.Calendar;
+using CalendarEvent = Ical.Net.CalendarComponents.CalendarEvent;
 
 namespace CDUniTap.Cli;
 
@@ -43,15 +49,38 @@ public partial class JiaoWuCliCommander : ICliCommander
                 async context => { info = await _jiaoWuServiceApi.GetMyCurriculumPreRequestInfo(); });
         var selection = new SelectionPrompt<string>()
             .Title("请选择周次");
+        selection.AddChoice("全部");
         foreach (var (weekName, _) in info?.AvalableWeeks ?? throw new Exception("获取课表架构失败"))
         {
             selection.AddChoice(weekName);
         }
 
         var selected = AnsiConsole.Prompt(selection);
-        var rawResult =
-            await _jiaoWuServiceApi.GetNewWeekScheduleRaw(info.SjmsValue, info.Xqids[0], info.AvalableWeeks[selected]);
-        var classes = ParseClassInfo(rawResult, DateOnly.Parse(info.AvalableWeeks[selected]));
+        var classes = new List<ClassInfo>();
+        var weeks = new List<string>();
+        await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .StartAsync("正在获取", async context =>
+            {
+                if (selected == "全部")
+                {
+                    weeks.AddRange(info.AvalableWeeks.Keys);
+                }
+                else
+                {
+                    weeks.Add(selected);
+                }
+
+                foreach (var week in weeks)
+                {
+                    var rawResult =
+                        await _jiaoWuServiceApi.GetNewWeekScheduleRaw(info.SjmsValue, info.Xqids[0],
+                            info.AvalableWeeks[week]);
+                    classes.AddRange(ParseClassInfo(rawResult, DateOnly.Parse(info.AvalableWeeks[week])));
+                }
+
+            });
+        
         var actionSelection = AnsiConsole.Prompt(new SelectionPrompt<string>()
             .Title("请选择操作")
             .AddChoices("显示课表")
@@ -61,12 +90,51 @@ public partial class JiaoWuCliCommander : ICliCommander
             case "显示课表":
                 DisplayClassInfos(classes);
                 break;
+            case "导出为 ics":
+                ExportToICS(classes);
+                break;
         }
-
     }
 
-    
-    
+    public static Dictionary<int, (TimeOnly, TimeOnly)> Timetable =
+        new()
+        {
+            { 0, (TimeOnly.Parse("08:10"), TimeOnly.Parse("09:45")) },
+            { 1, (TimeOnly.Parse("10:15"), TimeOnly.Parse("11:50")) },
+            { 2, (TimeOnly.Parse("13:00"), TimeOnly.Parse("14:00")) },
+            { 3, (TimeOnly.Parse("14:30"), TimeOnly.Parse("16:05")) },
+            { 4, (TimeOnly.Parse("16:25"), TimeOnly.Parse("18:00")) },
+            { 5, (TimeOnly.Parse("19:10"), TimeOnly.Parse("20:45")) },
+        };
+
+    private void ExportToICS(List<ClassInfo> classInfos)
+    {
+        var calendar = new Calendar();
+        foreach (var classInfo in classInfos)
+        {
+            var calEvent = new CalendarEvent
+            {
+                Summary = classInfo.ClassName,
+
+                Description =
+                    $"{classInfo.Teacher}\n{classInfo.Score}\n{classInfo.ClassWeek}\n{classInfo.ClassSchedule}",
+
+                Start = new CalDateTime(classInfo.Date.ToDateTime(Timetable[classInfo.IndexInDay].Item1)),
+
+                End = new CalDateTime(classInfo.Date.ToDateTime(Timetable[classInfo.IndexInDay].Item2)),
+
+                Location = classInfo.Location,
+            };
+            calendar.Events.Add(calEvent);
+        }
+
+        var converter = new CalendarSerializer();
+        var result = converter.SerializeToString(calendar);
+        var fileName = DateTime.Now.ToString("yyyyMMddhhmmss") + ".ics";
+        File.WriteAllText(fileName, result);
+        AnsiConsole.WriteLine($"[green]成功导出到 [/]{Path.GetFullPath(fileName.EscapeMarkup())}");
+    }
+
     private void DisplayClassInfos(List<ClassInfo> classInfos)
     {
         var datedClass = classInfos.GroupBy(t => t.Date).ToList();
@@ -83,26 +151,27 @@ public partial class JiaoWuCliCommander : ICliCommander
             var panels = new List<Panel>();
             var lastDate = classInfos.FirstOrDefault()?.Date.DayNumber ?? 0;
             foreach (var classInfo in grouping)
-            {   
+            {
                 for (int i = lastDate; i < classInfo.Date.DayNumber - 1; i++)
                 {
                     panels.Add(new Panel("无课程"));
                 }
+
                 panels.Add(new Panel(new Rows(
                     new Markup($"[green]{classInfo.ClassName.EscapeMarkup()}[/]"),
                     new Text(classInfo.Location),
                     new Text(classInfo.Teacher)
                 )));
                 lastDate = classInfo.Date.DayNumber;
-
             }
 
             table.AddRow(panels);
         }
+
         AnsiConsole.Clear();
         AnsiConsole.Write(table);
     }
-    
+
     private List<ClassInfo> ParseClassInfo(string rawResult, DateOnly startDate)
     {
         // 先获取出 6*7 = 42 个课程
