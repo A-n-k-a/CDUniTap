@@ -29,6 +29,7 @@ public partial class JiaoWuCliCommander : ICliCommander
             .Title("请选择要使用的功能")
             .AddChoices("查询在校学生")
             .AddChoices("查询本人课表")
+            .AddChoices("查询考试信息")
         );
         switch (choice)
         {
@@ -38,7 +39,115 @@ public partial class JiaoWuCliCommander : ICliCommander
             case "查询本人课表":
                 await GetNewCurriculumTable();
                 break;
+            case "查询考试信息":
+                await GetExamInfo();
+                break;
         }
+    }
+
+    private async Task GetExamInfo()
+    {
+        var infoRaw = await _jiaoWuServiceApi.GetExamPreRequestInfoRaw();
+        var matches = Regex.Matches(infoRaw, @"<option\s\S*\s*value=""([^""]*)"">2");
+        var semSelect = new SelectionPrompt<string>()
+            .Title("请选择学年学期");
+        foreach (Match match in matches)
+        {
+            semSelect.AddChoices(match.Groups[1].Value);
+        }
+
+        var result = AnsiConsole.Prompt(semSelect);
+        var examInfosRaw = await _jiaoWuServiceApi.GetExamInfosRaw(result);
+        var examInfos = await ParseExamInfos(examInfosRaw);
+        var actionSelection = AnsiConsole.Prompt(new SelectionPrompt<string>()
+            .Title("请选择操作")
+            .AddChoices("显示内容")
+            .AddChoices("导出为 ics"));
+        switch (actionSelection)
+        {
+            case "导出为 ics":
+                await ExportExamInfosToICalender(examInfos);
+                break;
+            case "显示内容":
+                foreach (var examInfo in examInfos)
+                {
+                    AnsiConsole.MarkupLine(
+                        $"* [green]{examInfo.Name}[/] {examInfo.StartTime:yyyy-MM-dd hh:mm:ss} - {examInfo.EndTime:t} ({examInfo.Classroom} - {examInfo.Seat})");
+                }
+                break;
+        }
+    }
+
+    private async Task ExportExamInfosToICalender(List<ExamInfo> examInfos)
+    {
+        var calendar = new Calendar();
+        foreach (var info in examInfos)
+        {
+            var calEvent = new CalendarEvent
+            {
+                Summary = $"[考试] {info.Name}",
+
+                Description =
+                    $"{info.Name}({info.CurriculumId})\n{info.Classroom} - {info.Seat}\n{info.Teacher}\n{info.ExamId}",
+
+                Start = new CalDateTime(info.StartTime),
+
+                End = new CalDateTime(info.EndTime),
+
+                Location = $"{info.Classroom} - {info.Seat}",
+            };
+            calendar.Events.Add(calEvent);
+        }
+
+        var converter = new CalendarSerializer();
+        var result = converter.SerializeToString(calendar);
+        var fileName = DateTime.Now.ToString("yyyyMMddhhmmss") + ".ics";
+        await File.WriteAllTextAsync(fileName, result);
+        AnsiConsole.MarkupLine($"[green]成功导出到 [/]{Path.GetFullPath(fileName.EscapeMarkup())}");
+    }
+
+    private async Task<List<ExamInfo>> ParseExamInfos(string rawInfo)
+    {
+        var infoMatches = ExamInfoRegex().Matches(rawInfo);
+        var ret = new List<ExamInfo>();
+        foreach (Match infoMatch in infoMatches)
+        {
+            var dtRangeRaw = infoMatch.Groups[8].Value;
+            var baseDate = DateOnly.Parse(Regex.Match(dtRangeRaw, @"(\S*)").Groups[1].Value);
+            var timeRageRaw = Regex.Match(dtRangeRaw, @"\S* (\S*)").Groups[1].Value;
+            var tsr = Regex.Matches(timeRageRaw, @"[^~]*");
+
+            var startTime = TimeOnly.Parse(tsr[0].Value);
+            var endTime = TimeOnly.Parse(tsr[2].Value);
+            var examInfo = new ExamInfo
+            {
+                Name = infoMatch.Groups[6].Value,
+                StartTime = baseDate.ToDateTime(startTime),
+                EndTime = baseDate.ToDateTime(endTime),
+                Classroom = infoMatch.Groups[9].Value,
+                Seat = infoMatch.Groups[10].Value,
+                AuthId = null,
+                Teacher = infoMatch.Groups[7].Value,
+                ExamId = infoMatch.Groups[4].Value,
+                CurriculumId = infoMatch.Groups[5].Value,
+            };
+            ret.Add(examInfo);
+        }
+
+        return ret;
+    }
+
+    class ExamInfo
+    {
+        public string Name { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public string Classroom { get; set; }
+        public string Seat { get; set; }
+        public string AuthId { get; set; }
+        public string Teacher { get; set; }
+        public string ExamId { get; set; }
+        public string CurriculumId { get; set; }
     }
 
     private async Task GetNewCurriculumTable()
@@ -78,9 +187,8 @@ public partial class JiaoWuCliCommander : ICliCommander
                             info.AvalableWeeks[week]);
                     classes.AddRange(ParseClassInfo(rawResult, DateOnly.Parse(info.AvalableWeeks[week])));
                 }
-
             });
-        
+
         var actionSelection = AnsiConsole.Prompt(new SelectionPrompt<string>()
             .Title("请选择操作")
             .AddChoices("显示课表")
@@ -91,7 +199,7 @@ public partial class JiaoWuCliCommander : ICliCommander
                 DisplayClassInfos(classes);
                 break;
             case "导出为 ics":
-                ExportToICS(classes);
+                ExportCurriculumToICS(classes);
                 break;
         }
     }
@@ -107,7 +215,7 @@ public partial class JiaoWuCliCommander : ICliCommander
             { 5, (TimeOnly.Parse("19:10"), TimeOnly.Parse("20:45")) },
         };
 
-    private void ExportToICS(List<ClassInfo> classInfos)
+    private void ExportCurriculumToICS(List<ClassInfo> classInfos)
     {
         var calendar = new Calendar();
         foreach (var classInfo in classInfos)
@@ -132,7 +240,7 @@ public partial class JiaoWuCliCommander : ICliCommander
         var result = converter.SerializeToString(calendar);
         var fileName = DateTime.Now.ToString("yyyyMMddhhmmss") + ".ics";
         File.WriteAllText(fileName, result);
-        AnsiConsole.WriteLine($"[green]成功导出到 [/]{Path.GetFullPath(fileName.EscapeMarkup())}");
+        AnsiConsole.MarkupLine($"[green]成功导出到 [/]{Path.GetFullPath(fileName.EscapeMarkup())}");
     }
 
     private void DisplayClassInfos(List<ClassInfo> classInfos)
@@ -252,4 +360,8 @@ public partial class JiaoWuCliCommander : ICliCommander
     [GeneratedRegex(
         @"<span onmouseover='kbtc\(this\)' onmouseout='kbot\(this\)' class='box' style='[^']*'><p>[^<]*</p><p>([^<]*)</p><span class='text'>([^<]*)</span></span><div class='item-box' ><p>(\S*)</p><div class='tch-name'><span>(\S*)</span><span>([^<]*)</span></div><div><span><img src='/jsxsd/assets_v1/images/item1.png'>([^<]*)</span>")]
     private static partial Regex ClassRawInfoRegex();
+
+    [GeneratedRegex(
+        @"<tr>\s*<td\s?>(.*)</td>\s*<td\s?\S*>(.*)</td>\s*<td\s?\S*>(.*)</td>\s*<td\s?\S*>(.*)</td>\s*<td\s?\S*>(.*)</td>\s*<td\s?\S*>(.*)</td>\s*<td\s?\S*>(.*)</td>\s*<td\s*\S*>(.*)</td>\s*<td\s*\S*>(.*)</td>\s*<td>(.*)</td>")]
+    private static partial Regex ExamInfoRegex();
 }

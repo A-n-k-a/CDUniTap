@@ -37,20 +37,37 @@ public class JiaoWuServiceApi : IHttpApiServiceBase, ICasAuthenticatedApi
         return true;
     }
 
-    public async Task<string> GetNewWeekScheduleRaw(string sjms,string xqid, string weekId)
+    public async Task<string> GetNewWeekScheduleRaw(string sjms, string xqid, string weekId)
     {
         return await _httpClient.GetStringAsync(
             $"https://jw.cdut.edu.cn/jsxsd/framework/mainV_index_loadkb.htmlx?rq={weekId}&sjmsValue={sjms}&xnxqid={xqid}&xswk=true");
+    }
+
+    public async Task<string> GetExamInfosRaw(string xqxqid, int xqlb = 0)
+    {
+        return await (await _httpClient.PostAsync("https://jw.cdut.edu.cn/jsxsd/xsks/xsksap_list",
+            new FormUrlEncodedContent(new Dictionary<string, string>()
+            {
+                { "xnxqid", xqxqid }
+            })
+        )).Content.ReadAsStringAsync();
+    }
+
+    public async Task<string> GetExamPreRequestInfoRaw()
+    {
+        return (await _httpClient.GetStringAsync("https://jw.cdut.edu.cn/jsxsd/xsks/xsksap_query"));
     }
     
     public async Task<CurriculumPreRequestInfo> GetMyCurriculumPreRequestInfo()
     {
         // Get sjmsValue
         var ans = new CurriculumPreRequestInfo();
-        var sjmsResult = await _httpClient.GetStringAsync("https://jw.cdut.edu.cn/jsxsd/framework/xsMainV_new.htmlx?t1=1");
+        var sjmsResult =
+            await _httpClient.GetStringAsync("https://jw.cdut.edu.cn/jsxsd/framework/xsMainV_new.htmlx?t1=1");
         ans.SjmsValue = Regex.Match(sjmsResult, @"data-value\=""(.*)"" name=""kbjcmsid""").Groups[1].Value;
         ans.Xqids
-            = Regex.Matches(sjmsResult, @"<option value="""">([\d-]*)</option>").ToList().Select(t=>t.Groups[1].Value).ToList();
+            = Regex.Matches(sjmsResult, @"<option value="""">([\d-]*)</option>").ToList().Select(t => t.Groups[1].Value)
+                .ToList();
         var matchedWeeks = Regex.Matches(sjmsResult, @"<option value=""([\d-]+)""\s*\S*>(.*)</option>").ToList();
         foreach (var matchedWeek in matchedWeeks)
         {
@@ -66,7 +83,7 @@ public class JiaoWuServiceApi : IHttpApiServiceBase, ICasAuthenticatedApi
         public List<string> Xqids { get; set; }
         public Dictionary<string, string> AvalableWeeks = new Dictionary<string, string>();
     }
-    
+
     public async Task<List<StudentInfo>> SearchStudent(string student)
     {
         var result = await (await _httpClient.PostAsync("https://jw.cdut.edu.cn/jsxsd/xskb/cxxs",
@@ -91,8 +108,7 @@ public class JiaoWuServiceApi : IHttpApiServiceBase, ICasAuthenticatedApi
         return res;
     }
 
-    
-    
+
     public partial class StudentSearchResponse
     {
         [JsonPropertyName("result")] public bool Result { get; set; }
