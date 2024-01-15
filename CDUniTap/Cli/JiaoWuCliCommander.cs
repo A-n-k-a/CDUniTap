@@ -29,7 +29,9 @@ public partial class JiaoWuCliCommander : ICliCommander
             .Title("请选择要使用的功能")
             .AddChoices("查询在校学生")
             .AddChoices("查询本人课表")
+            .AddChoices("查询本人课表 (测试版)")
             .AddChoices("查询考试信息")
+            .AddChoices("进入选课系统")
         );
         switch (choice)
         {
@@ -39,10 +41,32 @@ public partial class JiaoWuCliCommander : ICliCommander
             case "查询本人课表":
                 await GetNewCurriculumTable();
                 break;
+            case "查询本人课表 (测试版)":
+                await GetCurriculumTableNew();
+                break;
             case "查询考试信息":
                 await GetExamInfo();
                 break;
+            case "查询选课信息":
+                await EnterCurriculumChosenSystem();
+                break;
         }
+    }
+
+    private async Task EnterCurriculumChosenSystem()
+    {
+        var projects = await _jiaoWuServiceApi.GetCurriculumChosenProjects();
+        var selectionPrompt = new SelectionPrompt<JiaoWuServiceApi.CurriculumChosenProject>()
+                .UseConverter(t => $"{t.Name} ({t.Time}) 学期: {t.Semester} <{t.Id}>")
+            ;
+        selectionPrompt.AddChoices(projects);
+        selectionPrompt.Title("请选择选课计划");
+        var result = AnsiConsole.Prompt(selectionPrompt);
+        await ChooseInProject(result);
+    }
+
+    private async Task ChooseInProject(JiaoWuServiceApi.CurriculumChosenProject project)
+    {
     }
 
     private async Task GetExamInfo()
@@ -74,6 +98,7 @@ public partial class JiaoWuCliCommander : ICliCommander
                     AnsiConsole.MarkupLine(
                         $"* [green]{examInfo.Name}[/] {examInfo.StartTime:yyyy-MM-dd hh:mm:ss} - {examInfo.EndTime:t} ({examInfo.Classroom} - {examInfo.Seat})");
                 }
+
                 break;
         }
     }
@@ -150,6 +175,105 @@ public partial class JiaoWuCliCommander : ICliCommander
         public string CurriculumId { get; set; }
     }
 
+    private async Task GetCurriculumTableNew()
+    {
+        JiaoWuServiceApi.CurriculumPreRequestInfo? info = null;
+        await AnsiConsole.Status()
+            .StartAsync("正在获取课表架构",
+                async context => { info = await _jiaoWuServiceApi.GetMyCurriculumPreRequestInfoNew(); });
+        var selection = new SelectionPrompt<string>()
+            .Title("请选择学期");
+        selection.AddChoices(info.Xqids);
+        var xq = AnsiConsole.Prompt(selection);
+        AnsiConsole.MarkupLine("由于该功能无法获取到教学开始日期, 请手动输入 第一周 周一 日期, 格式为 年-月-日");
+        var date = AnsiConsole.Ask<string>("请输入: ");
+        var startDate = DateOnly.Parse(date);
+        selection = new SelectionPrompt<string>()
+            .Title("请选择周次");
+        selection.AddChoice("全部");
+        foreach (var (weekName, _) in info?.AvalableWeeks ?? throw new Exception("获取课表架构失败"))
+        {
+            selection.AddChoice(weekName);
+        }
+
+        var selected = AnsiConsole.Prompt(selection);
+        var classes = new List<ClassInfo>();
+        var weeks = new List<string>();
+        await AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .StartAsync("正在获取", async context =>
+            {
+                if (selected == "全部")
+                {
+                    weeks.AddRange(info.AvalableWeeks.Keys);
+                }
+                else
+                {
+                    weeks.Add(selected);
+                }
+
+                foreach (var week in weeks)
+                {
+                    var weekId = int.Parse(week[2..^2]);
+                    var rawResult =
+                        await _jiaoWuServiceApi.GetCurriculumsRaw(xq, weekId.ToString());
+                    classes.AddRange(ParseClassInfoNew(rawResult, startDate.AddDays((weekId - 1) * 7)));
+                }
+            });
+
+
+        var actionSelection = AnsiConsole.Prompt(new SelectionPrompt<string>()
+            .Title("请选择操作")
+            .AddChoices("显示课表")
+            .AddChoices("导出为 ics"));
+        switch (actionSelection)
+        {
+            case "显示课表":
+                DisplayClassInfos(classes);
+                break;
+            case "导出为 ics":
+                ExportCurriculumToICS(classes);
+                break;
+        }
+    }
+
+    private List<ClassInfo> ParseClassInfoNew(string result, DateOnly date)
+    {
+        var ret = new List<ClassInfo>();
+        var matches = Regex.Matches(result,
+            @"<td width=""123"" height=""28"" align=""center"" valign='top'\s*>\s*([\s\S]*?)\s*</td>");
+        int index = -1;
+        foreach (Match match in matches)
+        {
+            index++;
+            var classInfo = new ClassInfo();
+            var curriculumInfoRaw = match.Groups[1].Value;
+            classInfo.ClassName = Regex.Match(curriculumInfoRaw,
+                    @"<font onmouseover='kbtc\(this\)' onmouseout='kbot\(this\)'\s*>(.*?)</font>")
+                .Groups[1].Value.Replace("<br/>", string.Empty);
+            if (string.IsNullOrEmpty(classInfo.ClassName)) continue;
+            classInfo.Teacher = Regex.Match(curriculumInfoRaw,
+                    @"<font title='教师' onmouseover='kbtc\(this\)' onmouseout='kbot\(this\)'\s*>(.*?)</font>")
+                .Groups[1].Value;
+            var mt = Regex.Match(curriculumInfoRaw,
+                    @"<font title='周次\(节次\)' onmouseover='kbtc\(this\)' onmouseout='kbot\(this\)'\s*>(.*?)\[(.*?)\]</font>")
+                ;
+            classInfo.ClassWeek = mt.Groups[1].Value;
+            classInfo.ClassSchedule = mt.Groups[2].Value;
+            classInfo.Location = Regex.Match(curriculumInfoRaw,
+                    @"<font title='教学楼' name='jxlmc' style='display:none;'\s*onmouseover='kbtc\(this\)' onmouseout='kbot\(this\)'\s*>(.*?)</font>")
+                .Groups[1].Value;
+            classInfo.Location += " - " + Regex.Match(curriculumInfoRaw,
+                    @"<font title='教室' onmouseover='kbtc\(this\)' onmouseout='kbot\(this\)'\s*>(.*?)</font>")
+                .Groups[1].Value;
+            classInfo.Date = date.AddDays(index % 7);
+            classInfo.IndexInDay = index / 7;
+            ret.Add(classInfo);
+        }
+
+        return ret;
+    }
+
     private async Task GetNewCurriculumTable()
     {
         JiaoWuServiceApi.CurriculumPreRequestInfo? info = null;
@@ -157,6 +281,10 @@ public partial class JiaoWuCliCommander : ICliCommander
             .StartAsync("正在获取课表架构",
                 async context => { info = await _jiaoWuServiceApi.GetMyCurriculumPreRequestInfo(); });
         var selection = new SelectionPrompt<string>()
+            .Title("请选择学期");
+        selection.AddChoices(info.Xqids);
+        var xq = AnsiConsole.Prompt(selection);
+        selection = new SelectionPrompt<string>()
             .Title("请选择周次");
         selection.AddChoice("全部");
         foreach (var (weekName, _) in info?.AvalableWeeks ?? throw new Exception("获取课表架构失败"))
@@ -183,7 +311,7 @@ public partial class JiaoWuCliCommander : ICliCommander
                 foreach (var week in weeks)
                 {
                     var rawResult =
-                        await _jiaoWuServiceApi.GetNewWeekScheduleRaw(info.SjmsValue, info.Xqids[0],
+                        await _jiaoWuServiceApi.GetNewWeekScheduleRaw(info.SjmsValue, xq,
                             info.AvalableWeeks[week]);
                     classes.AddRange(ParseClassInfo(rawResult, DateOnly.Parse(info.AvalableWeeks[week])));
                 }

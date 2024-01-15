@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -57,7 +58,7 @@ public class JiaoWuServiceApi : IHttpApiServiceBase, ICasAuthenticatedApi
     {
         return (await _httpClient.GetStringAsync("https://jw.cdut.edu.cn/jsxsd/xsks/xsksap_query"));
     }
-    
+
     public async Task<CurriculumPreRequestInfo> GetMyCurriculumPreRequestInfo()
     {
         // Get sjmsValue
@@ -80,8 +81,8 @@ public class JiaoWuServiceApi : IHttpApiServiceBase, ICasAuthenticatedApi
     public class CurriculumPreRequestInfo
     {
         public string SjmsValue { get; set; }
-        public List<string> Xqids { get; set; }
-        public Dictionary<string, string> AvalableWeeks = new Dictionary<string, string>();
+        public List<string> Xqids = new();
+        public Dictionary<string, string> AvalableWeeks = new();
     }
 
     public async Task<List<StudentInfo>> SearchStudent(string student)
@@ -109,6 +110,67 @@ public class JiaoWuServiceApi : IHttpApiServiceBase, ICasAuthenticatedApi
     }
 
 
+    public async Task<CurriculumPreRequestInfo> GetMyCurriculumPreRequestInfoNew()
+    {
+        var result = await _httpClient.GetStringAsync("https://jw.cdut.edu.cn/jsxsd/xskb/xskb_list.do");
+        var matches = Regex.Matches(result, @"<option value=""(20[\S]*)"".*>20");
+        var ans = new CurriculumPreRequestInfo();
+        foreach (Match match in matches)
+        {
+            ans.Xqids.Add(match.Groups[1].Value);
+        }
+        foreach (var i in Enumerable.Range(1,30))
+        {
+            ans.AvalableWeeks[$"第 {i} 周"] = DateOnly.FromDateTime(DateTime.Now).ToString();
+        }
+        
+        return ans;
+    }
+    
+    public async Task<string> GetCurriculumsRaw(string xqid, string zc)
+    {
+        return await (await _httpClient.PostAsync("https://jw.cdut.edu.cn/jsxsd/xskb/xskb_list.do",
+            new FormUrlEncodedContent(new Dictionary<string, string>()
+            {
+                { "cj0701id", "" },
+                { "xnxq01id", xqid },
+                { "sfFD", "1" },
+                { "wkbkc", "1" },
+                { "zc", zc }
+            })
+        )).Content.ReadAsStringAsync();
+    }
+
+    public class CurriculumChosenProject
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Semester { get; set; }
+        public string Time { get; set; }
+    }
+
+    public async Task<List<CurriculumChosenProject>> GetCurriculumChosenProjects()
+    {
+        var rawResult = await _httpClient.GetStringAsync("https://jw.cdut.edu.cn/jsxsd/xsxk/xklc_list");
+        var matches = Regex.Matches(rawResult,
+            @"<tr>\s*<td>([^<]*)<\/td>\s*<td>([^<]*)<\/td>\s*<td>([^<]*)<\/td>[\s]*<td>\s*.*toxk\('(.*)\'\)""");
+        var result = new List<CurriculumChosenProject>();
+        foreach (Match match in matches)
+        {
+            result.Add(new CurriculumChosenProject
+            {
+                Id = match.Groups[4].Value,
+                Name = match.Groups[2].Value,
+                Semester = match.Groups[1].Value,
+                Time = match.Groups[3].Value
+            });
+        }
+
+        return result;
+    }
+
+
+    
     public partial class StudentSearchResponse
     {
         [JsonPropertyName("result")] public bool Result { get; set; }
