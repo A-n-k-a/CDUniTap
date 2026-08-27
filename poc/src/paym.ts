@@ -1,0 +1,129 @@
+import { authenticateService, USER_AGENT } from "./cas.js";
+import {
+  CookieJar,
+  fetchWithJar,
+  fetchWithUpgrade,
+} from "./http.js";
+
+const PAYM_BASE = "https://paym.cdut.edu.cn";
+const CAS_SERVICE_URL = "http://paym.cdut.edu.cn/casLogin/";
+
+export interface UserInfo {
+  id: string;
+  studentId: string;
+  name: string;
+  sex: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+}
+
+export interface PaymSession {
+  token: string;
+}
+
+export async function authenticatePaym(
+  jar: CookieJar
+): Promise<PaymSession> {
+  const callbackLink = await authenticateService(jar, CAS_SERVICE_URL);
+  if (!callbackLink || !callbackLink.includes("ticket")) {
+    throw new Error("CAS 未返回 paym 票据，可能是未登录或无权限");
+  }
+
+  const ticketRes = (
+    await fetchWithUpgrade(jar, callbackLink, {
+      headers: { "User-Agent": USER_AGENT },
+    })
+  ).res;
+  const secondRet = ticketRes.headers.get("location");
+  if (ticketRes.status !== 302 || !secondRet) {
+    throw new Error(`paym 票据验证失败: status=${ticketRes.status}`);
+  }
+
+  const actualRes = (
+    await fetchWithUpgrade(jar, secondRet, {
+      headers: { "User-Agent": USER_AGENT },
+    })
+  ).res;
+  if (!actualRes.ok) {
+    throw new Error(`paym 登录页获取失败: status=${actualRes.status}`);
+  }
+  const actualHtml = await actualRes.text();
+  const resultMatch = actualHtml.match(
+    /window\.location\.href\s*=\s*"([^"]*)"/
+  );
+  if (!resultMatch) {
+    throw new Error("无法从 paym 登录页解析跳转地址");
+  }
+
+  const tokenRes = (
+    await fetchWithUpgrade(jar, resultMatch[1], {
+      headers: { "User-Agent": USER_AGENT },
+    })
+  ).res;
+  const tokenLink = tokenRes.headers.get("location");
+  if (tokenRes.status !== 302 || !tokenLink) {
+    throw new Error(`paym token 获取失败: status=${tokenRes.status}`);
+  }
+
+  const tokenUrl = new URL(tokenLink);
+  const token = tokenUrl.searchParams.get("token");
+  if (!token) {
+    throw new Error("paym 回调中未找到 token 参数");
+  }
+
+  return { token };
+}
+
+async function getJson<T>(
+  jar: CookieJar,
+  token: string,
+  path: string
+): Promise<T> {
+  const res = await fetchWithJar(jar, `${PAYM_BASE}${path}`, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      "X-Token": token,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`paym 请求失败 ${path}: status=${res.status}`);
+  }
+  const body = (await res.json()) as { data?: T };
+  if (!body.data) {
+    throw new Error(`paym 返回数据为空: ${path}`);
+  }
+  return body.data;
+}
+
+export async function getUserInfo(
+  jar: CookieJar,
+  session: PaymSession
+): Promise<UserInfo> {
+  return getJson<{
+    id: string;
+    idserial: string;
+    name: string;
+    sex: string;
+  }>(jar, session.token, `/api/pay/queryUserInfo/${session.token}`).then(
+    (d) => ({
+      id: d.id,
+      studentId: d.idserial,
+      name: d.name,
+      sex: d.sex,
+    })
+  );
+}
+
+export async function getAllProjects(
+  jar: CookieJar,
+  session: PaymSession
+): Promise<Project[]> {
+  return getJson<{ id: string; projectName: string }[]>(
+    jar,
+    session.token,
+    "/api/pay/project/getAllProjectList"
+  ).then((list) => list.map((p) => ({ id: p.id, name: p.projectName })));
+}
