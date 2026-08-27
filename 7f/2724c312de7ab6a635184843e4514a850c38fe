@@ -1,0 +1,32 @@
+poc/src/paym.ts
+  s_9ee0d6ccd22444::t_0415c71b540e3d 35-38,41-44,47-53,55-58,62,65-67,70-78,81-84,87,90-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "7f2724c312de7ab6a635184843e4514a850c38fe",
+  "prompts": {},
+  "sessions": {
+    "s_9ee0d6ccd22444": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a8ff3dfd929b3de83b1126d",
+        "model": "Doubao-Seed-Evolving__dev"
+      },
+      "human_author": "A-n-k-a <47747022+A-n-k-a@users.noreply.github.com>",
+      "custom_attributes": {
+        "tool_type": "agent",
+        "tool_id": "Write",
+        "session_id": "6a8ff3dfd929b3de83b1126d",
+        "client_type": "ide",
+        "runtime_client": "trae-tob-git-ai",
+        "source_scene": "unknown",
+        "tool_use_id": "6a90400cd929b3de83b116a5",
+        "external_session_id": "6a8ff3dfd929b3de83b1126d",
+        "operation_id": "6a90400cd929b3de83b116a5",
+        "edit_kind": "file_edit",
+        "dedupe_key": "6a8ff3dfd929b3de83b1126d:6a90400cd929b3de83b116a5:afterEdit:6a2550b3"
+      }
+    }
+  }
+}
