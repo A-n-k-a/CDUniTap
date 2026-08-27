@@ -1,0 +1,82 @@
+poc/src/server.ts
+  s_9ee0d6ccd22444::t_e930e80dcaf479 1-7
+poc/vercel.json
+  s_9ee0d6ccd22444::t_cdb0046f494d0e 1-2,4-7
+  s_9ee0d6ccd22444::t_766f067b493c1c 3
+poc/src/index.ts
+  s_9ee0d6ccd22444::t_2e3c5d02524b07 1-3
+poc/src/app.ts
+  s_9ee0d6ccd22444::t_381623e0b82108 33-34
+  s_9ee0d6ccd22444::t_50c3c3ea379e88 35-36
+  s_9ee0d6ccd22444::t_7953ef86597d77 9
+  s_9ee0d6ccd22444::t_cfe9bef4d8b20a 1-8,10-15,17-21,23-32,37-43,48-73,75-94,97-112,114-128,163
+  s_9ee0d6ccd22444::t_20ecc4bd7041e9 16,74,95-96,113
+  s_9ee0d6ccd22444::t_74b08320e9e734 44-47
+  s_9ee0d6ccd22444::t_bd7ccc3d998fa7 129-162
+  s_9ee0d6ccd22444::t_b5deaf0882cdd5 22
+poc/src/cas.ts
+  s_9ee0d6ccd22444::t_a204a3825623ba 13
+  s_9ee0d6ccd22444::t_9bd4bc9c72e74d 95-96,98,107
+  s_9ee0d6ccd22444::t_b48d72fd158a3e 1,3-10,12,14-15,20-29,31-32,34,36-37,39-43,45-55,61-64,69-83,85-94,99-104,106,108-111,114-115,117-124
+  s_9ee0d6ccd22444::t_02d616d3acbe0b 56-60
+  s_9ee0d6ccd22444::t_4d38f3ebe1b73d 66
+  s_9ee0d6ccd22444::t_b84480f839d3d3 2,11,16-19,30,33,35,38,44,65,67-68,84,97,105,112-113,116,125
+poc/package.json
+  s_9ee0d6ccd22444::t_8745c888377448 14
+  s_9ee0d6ccd22444::t_2afc93e0eef8df 1-6,9,12-13,16-18,21-23
+  s_9ee0d6ccd22444::t_6b36995c20e5a0 7-8,10-11,15,19-20
+poc/tsconfig.json
+  s_9ee0d6ccd22444::t_550f13e4ec0e6d 1-18
+poc/src/jw.ts
+  s_9ee0d6ccd22444::t_33617ad0bc11ad 1-6
+  s_9ee0d6ccd22444::t_eaa97aa4c290de 17,20-22
+  s_9ee0d6ccd22444::t_3a248c97969211 14-16,18-19,26,28-29,32,57,67-68
+  s_9ee0d6ccd22444::t_87104dbd7d698a 7-13,23-25,27,30-31,33-56,58-66,69-107
+poc/src/http.ts
+  s_9ee0d6ccd22444::t_67dd03927d1fe5 263-268
+  s_9ee0d6ccd22444::t_7d6a26f134d308 148-149,152-153,248,282,284,292-295
+  s_9ee0d6ccd22444::t_4310187368b251 102-106,114-119,122-123,125-126,128-145
+  s_9ee0d6ccd22444::t_4664b89ed180a4 4-5
+  s_9ee0d6ccd22444::t_5b43a89861bcdb 69-82
+  s_9ee0d6ccd22444::t_23346db3da1dac 6-68,83-101,107-113,120-121,124,127,146-147,245-247,249,258-259,262,270,272,280,285,296
+  s_9ee0d6ccd22444::t_03856f0e000edc 150-151,154-244,250-257,260-261,269,271,273-279,281,283,286-291
+  s_9ee0d6ccd22444::t_ab630f9412514d 1-3
+poc/.gitignore
+  s_9ee0d6ccd22444::t_4e76f312c99f97 1-6
+poc/src/paym.ts
+  s_9ee0d6ccd22444::t_00ebc488b9f3dc 35-36,38-39,45-49,61-65,71
+  s_9ee0d6ccd22444::t_71e3e1b9e60677 5
+  s_9ee0d6ccd22444::t_377e82b92ab138 1-4,6-34,37,40-44,50-60,66-70,72-129
+poc/src/h2.ts
+  s_9ee0d6ccd22444::t_84759535072379 1-129,136-272
+  s_9ee0d6ccd22444::t_922a015a067b87 130-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "4795abc762ee7ade1a0828edb2c323f1b7ab0ef7",
+  "prompts": {},
+  "sessions": {
+    "s_9ee0d6ccd22444": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a8ff3dfd929b3de83b1126d",
+        "model": "Doubao-Seed-Evolving__dev"
+      },
+      "human_author": "A-n-k-a <47747022+A-n-k-a@users.noreply.github.com>",
+      "custom_attributes": {
+        "session_id": "6a8ff3dfd929b3de83b1126d",
+        "operation_id": "6a9026e7d929b3de83b114d9",
+        "source_scene": "unknown",
+        "external_session_id": "6a8ff3dfd929b3de83b1126d",
+        "tool_use_id": "6a9026e7d929b3de83b114d9",
+        "tool_id": "Edit",
+        "runtime_client": "trae-tob-git-ai",
+        "tool_type": "agent",
+        "edit_kind": "file_edit",
+        "client_type": "ide",
+        "dedupe_key": "6a8ff3dfd929b3de83b1126d:6a9026e7d929b3de83b114d9:afterEdit:04ada241"
+      }
+    }
+  }
+}
