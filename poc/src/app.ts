@@ -107,7 +107,7 @@ app.post("/auth/login", async (c) => {
   return c.json({
     success: true,
     studentId: result.studentId,
-    cookies: result.jar.serialize(),
+    cookies: result.jar.all(),
   });
 });
 
