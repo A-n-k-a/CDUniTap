@@ -1,0 +1,38 @@
+poc/vercel.json
+  s_9ee0d6ccd22444::t_1d0aa00297d7a5 4
+poc/src/app.ts
+  s_9ee0d6ccd22444::t_13d6f41ad9e57b 13-26
+poc/src/h2.ts
+  s_9ee0d6ccd22444::t_a66dafd5b8a640 3-4,11-19
+  s_9ee0d6ccd22444::t_75a7d326436e1d 5-10
+poc/package.json
+  s_9ee0d6ccd22444::t_37e3ac5b5506a0 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "2042c25bfa3fab3233c7375ac7bc0dc135e31a1f",
+  "prompts": {},
+  "sessions": {
+    "s_9ee0d6ccd22444": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a8ff3dfd929b3de83b1126d",
+        "model": "Doubao-Seed-Evolving__dev"
+      },
+      "human_author": "A-n-k-a <47747022+A-n-k-a@users.noreply.github.com>",
+      "custom_attributes": {
+        "tool_use_id": "6a9035a1d929b3de83b115c7",
+        "external_session_id": "6a8ff3dfd929b3de83b1126d",
+        "runtime_client": "trae-tob-git-ai",
+        "edit_kind": "bash",
+        "operation_id": "6a9035a1d929b3de83b115c7",
+        "tool_name": "Shell",
+        "display_model_name": "Doubao-Seed-Evolving",
+        "source_scene": "agent",
+        "session_id": "6a8ff3dfd929b3de83b1126d",
+        "client_type": "ide"
+      }
+    }
+  }
+}
