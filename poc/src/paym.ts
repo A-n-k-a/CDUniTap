@@ -85,10 +85,17 @@ export async function authenticatePaym(
   }
 
   const tokenUrl = new URL(tokenLink, nextUrl);
-  const token = tokenUrl.searchParams.get("token");
+  let token = tokenUrl.searchParams.get("token");
+  if (!token && tokenUrl.hash) {
+    const hashQuery = tokenUrl.hash.split("?")[1];
+    if (hashQuery) {
+      const hashParams = new URLSearchParams(hashQuery);
+      token = hashParams.get("token");
+    }
+  }
   if (!token) {
     throw new Error(
-      `paym 回调中未找到 token 参数, tokenLink=${tokenLink}, params=${Array.from(tokenUrl.searchParams.entries()).map(([k, v]) => `${k}=${v}`).join("&")}`
+      `paym 回调中未找到 token 参数, tokenLink=${tokenLink}, hash=${tokenUrl.hash}, searchParams=${Array.from(tokenUrl.searchParams.entries()).map(([k, v]) => `${k}=${v}`).join("&")}`
     );
   }
 
