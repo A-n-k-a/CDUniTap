@@ -1,5 +1,22 @@
 import http2 from "node:http2";
 import { TextDecoder } from "node:util";
+import { Agent, setGlobalDispatcher } from "undici";
+
+const IS_SERVERLESS =
+  !!process.env.VERCEL ||
+  !!process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  !!process.env.TENCENTCLOUD_RUNENV ||
+  !!process.env.EFUNCTION;
+
+if (IS_SERVERLESS) {
+  setGlobalDispatcher(
+    new Agent({
+      connect: { timeout: 30_000 },
+      bodyTimeout: 45_000,
+      headersTimeout: 15_000,
+    })
+  );
+}
 
 const {
   HTTP2_HEADER_PATH,
@@ -31,12 +48,6 @@ interface PoolEntry {
   client: http2.ClientHttp2Session;
   refCount: number;
 }
-
-const IS_SERVERLESS =
-  !!process.env.VERCEL ||
-  !!process.env.AWS_LAMBDA_FUNCTION_NAME ||
-  !!process.env.TENCENTCLOUD_RUNENV ||
-  !!process.env.EFUNCTION;
 
 const clientPool = new Map<string, PoolEntry>();
 

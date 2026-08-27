@@ -10,6 +10,20 @@ import { authenticatePaym, getAllProjects, getUserInfo } from "./paym.js";
 
 const app = new Hono();
 
+app.onError((err, c) => {
+  console.error("[PoC] unhandled error:", err);
+  const message = err instanceof Error ? err.message : String(err);
+  const stack = err instanceof Error ? err.stack : undefined;
+  return c.json(
+    {
+      error: "internal_server_error",
+      message,
+      ...(stack ? { stack: stack.split("\n").slice(0, 5) } : {}),
+    },
+    500
+  );
+});
+
 app.get("/", (c) =>
   c.json({
     name: "CDUniTap PoC",
