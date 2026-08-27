@@ -1,0 +1,32 @@
+poc/src/paym.ts
+  s_9ee0d6ccd22444::t_f7ce466aa303c9 88-95,98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "8917d69f2b2428b25a8b8281ed273fc0810225ad",
+  "prompts": {},
+  "sessions": {
+    "s_9ee0d6ccd22444": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a8ff3dfd929b3de83b1126d",
+        "model": "Doubao-Seed-Evolving__dev"
+      },
+      "human_author": "A-n-k-a <47747022+A-n-k-a@users.noreply.github.com>",
+      "custom_attributes": {
+        "dedupe_key": "6a8ff3dfd929b3de83b1126d:6a9041c9d929b3de83b116c8:afterEdit:6a2550b3",
+        "tool_type": "agent",
+        "edit_kind": "file_edit",
+        "tool_id": "Edit",
+        "external_session_id": "6a8ff3dfd929b3de83b1126d",
+        "tool_use_id": "6a9041c9d929b3de83b116c8",
+        "operation_id": "6a9041c9d929b3de83b116c8",
+        "source_scene": "unknown",
+        "client_type": "ide",
+        "runtime_client": "trae-tob-git-ai",
+        "session_id": "6a8ff3dfd929b3de83b1126d"
+      }
+    }
+  }
+}
