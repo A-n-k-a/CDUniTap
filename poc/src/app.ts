@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { loginWithPassword } from "./cas.js";
 import {
   authenticateJw,
@@ -7,6 +7,7 @@ import {
   parseSchedule,
 } from "./jw.js";
 import { authenticatePaym, getAllProjects, getUserInfo } from "./paym.js";
+import { CookieJar } from "./http.js";
 
 const app = new Hono();
 
@@ -34,6 +35,10 @@ app.get("/", (c) =>
       "POST /auth/login",
       "POST /jw/schedule",
       "POST /paym/userinfo",
+    ],
+    authFlow: [
+      "POST /auth/login 获取 cookies",
+      "在后续请求的 Header 中携带 X-Auth-Cookies",
     ],
   })
 );
@@ -77,6 +82,16 @@ app.get("/diag", async (c) => {
   return c.json(results);
 });
 
+function getAuthJar(c: Context): CookieJar | null {
+  const raw = c.req.header("x-auth-cookies");
+  if (!raw) return null;
+  try {
+    return CookieJar.deserialize(raw);
+  } catch {
+    return null;
+  }
+}
+
 app.post("/auth/login", async (c) => {
   const body = await c.req.json<{ username: string; password: string }>();
   if (!body.username || !body.password) {
@@ -92,22 +107,18 @@ app.post("/auth/login", async (c) => {
   return c.json({
     success: true,
     studentId: result.studentId,
+    cookies: result.jar.serialize(),
   });
 });
 
 app.post("/jw/schedule", async (c) => {
-  const body = await c.req.json<{ username: string; password: string }>();
-  if (!body.username || !body.password) {
-    return c.json({ error: "username 和 password 必填" }, 400);
+  const jar = getAuthJar(c);
+  if (!jar) {
+    return c.json({ error: "请先登录并在 X-Auth-Cookies 头中携带会话凭证" }, 401);
   }
 
-  const login = await loginWithPassword(body.username, body.password);
-  if (!login.success) {
-    return c.json({ error: "CAS 登录失败" }, 401);
-  }
-
-  await authenticateJw(login.jar);
-  const preInfo = await getCurriculumPreInfo(login.jar);
+  await authenticateJw(jar);
+  const preInfo = await getCurriculumPreInfo(jar);
 
   if (preInfo.xqids.length === 0 || !preInfo.sjmsValue) {
     return c.json(
@@ -124,7 +135,7 @@ app.post("/jw/schedule", async (c) => {
   }
 
   const raw = await getWeekScheduleRaw(
-    login.jar,
+    jar,
     preInfo.sjmsValue,
     xqid,
     firstWeek[1]
@@ -132,7 +143,6 @@ app.post("/jw/schedule", async (c) => {
   const classes = parseSchedule(raw);
 
   return c.json({
-    studentId: login.studentId,
     semester: xqid,
     week: firstWeek[0],
     classCount: classes.length,
@@ -141,24 +151,18 @@ app.post("/jw/schedule", async (c) => {
 });
 
 app.post("/paym/userinfo", async (c) => {
-  const body = await c.req.json<{ username: string; password: string }>();
-  if (!body.username || !body.password) {
-    return c.json({ error: "username 和 password 必填" }, 400);
-  }
-
-  const login = await loginWithPassword(body.username, body.password);
-  if (!login.success) {
-    return c.json({ error: "CAS 登录失败" }, 401);
+  const jar = getAuthJar(c);
+  if (!jar) {
+    return c.json({ error: "请先登录并在 X-Auth-Cookies 头中携带会话凭证" }, 401);
   }
 
   try {
-    const session = await authenticatePaym(login.jar);
+    const session = await authenticatePaym(jar);
     const [userInfo, projects] = await Promise.all([
-      getUserInfo(login.jar, session),
-      getAllProjects(login.jar, session),
+      getUserInfo(jar, session),
+      getAllProjects(jar, session),
     ]);
     return c.json({
-      studentId: login.studentId,
       userInfo,
       projectCount: projects.length,
       projects,

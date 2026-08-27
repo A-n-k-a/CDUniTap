@@ -97,6 +97,29 @@ export class CookieJar {
   all(): Cookie[] {
     return Array.from(this.cookies.values());
   }
+
+  serialize(): string {
+    return JSON.stringify(this.all());
+  }
+
+  static deserialize(data: string): CookieJar {
+    const jar = new CookieJar();
+    try {
+      const cookies = JSON.parse(data) as Cookie[];
+      if (!Array.isArray(cookies)) return jar;
+      for (const c of cookies) {
+        if (c?.name && c.value && c.domain && c.path) {
+          jar.cookies.set(jar.key(c.name, c.domain, c.path), {
+            name: c.name,
+            value: c.value,
+            domain: c.domain,
+            path: c.path,
+          });
+        }
+      }
+    } catch {}
+    return jar;
+  }
 }
 
 export interface FetchOptions {
