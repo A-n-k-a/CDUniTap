@@ -32,13 +32,28 @@ interface PoolEntry {
   refCount: number;
 }
 
+const IS_SERVERLESS =
+  !!process.env.VERCEL ||
+  !!process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  !!process.env.TENCENTCLOUD_RUNENV ||
+  !!process.env.EFUNCTION;
+
 const clientPool = new Map<string, PoolEntry>();
 
 function acquireClient(origin: string): http2.ClientHttp2Session {
   const existing = clientPool.get(origin);
-  if (existing && !existing.client.closed && !existing.client.destroyed) {
+  if (
+    existing &&
+    !existing.client.closed &&
+    !existing.client.destroyed &&
+    !existing.client.connecting
+  ) {
     existing.refCount++;
     return existing.client;
+  }
+  if (existing) {
+    existing.client.destroy();
+    clientPool.delete(origin);
   }
   const client = http2.connect(origin, {
     settings: { enablePush: false },
@@ -85,6 +100,9 @@ export function h2Fetch(
   url: string,
   init: H2RequestInit = {}
 ): Promise<H2Response> {
+  if (IS_SERVERLESS) {
+    return nodeFetchFallback(url, init);
+  }
   return doH2Fetch(url, init).catch((err) => {
     if (isH2Unsupported(err)) {
       return nodeFetchFallback(url, init);
@@ -94,14 +112,21 @@ export function h2Fetch(
 }
 
 function isH2Unsupported(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message || "";
+  if (!(err instanceof Error)) return true;
+  const msg = (err.message || "").toLowerCase();
   return (
     msg.includes("unsupported protocol") ||
-    msg.includes("ECONNRESET") ||
-    msg.includes("ALPN") ||
-    msg.includes("NGHTTP2") ||
-    err.message.includes("ERR_HTTP2")
+    msg.includes("econnreset") ||
+    msg.includes("alpn") ||
+    msg.includes("nghttp2") ||
+    msg.includes("err_http2") ||
+    msg.includes("protocol error") ||
+    msg.includes("socket hang up") ||
+    msg.includes("econnrefused") ||
+    msg.includes("enotfound") ||
+    msg.includes("ehostunreach") ||
+    msg.includes("epipe") ||
+    err.name === "AbortError"
   );
 }
 
