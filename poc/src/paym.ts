@@ -32,46 +32,64 @@ export async function authenticatePaym(
     throw new Error("CAS 未返回 paym 票据，可能是未登录或无权限");
   }
 
-  const ticketRes = (
-    await fetchWithUpgrade(jar, callbackLink, {
-      headers: { "User-Agent": USER_AGENT },
-    })
-  ).res;
+  const ticketResult = await fetchWithUpgrade(jar, callbackLink, {
+    headers: { "User-Agent": USER_AGENT },
+  });
+  const ticketRes = ticketResult.res;
   const secondRet = ticketRes.headers.get("location");
   if (ticketRes.status !== 302 || !secondRet) {
-    throw new Error(`paym 票据验证失败: status=${ticketRes.status}`);
+    const body = await ticketRes.text().catch(() => "");
+    throw new Error(
+      `paym 票据验证失败: status=${ticketRes.status}, location=${secondRet}, upgraded=${ticketResult.upgraded}, fellBack=${ticketResult.fellBack}, body=${body.slice(0, 200)}`
+    );
   }
 
-  const actualRes = (
-    await fetchWithUpgrade(jar, secondRet, {
-      headers: { "User-Agent": USER_AGENT },
-    })
-  ).res;
+  const actualResult = await fetchWithUpgrade(jar, secondRet, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      Referer: callbackLink,
+    },
+  });
+  const actualRes = actualResult.res;
   if (!actualRes.ok) {
-    throw new Error(`paym 登录页获取失败: status=${actualRes.status}`);
+    const body = await actualRes.text().catch(() => "");
+    throw new Error(
+      `paym 登录页获取失败: status=${actualRes.status}, upgraded=${actualResult.upgraded}, fellBack=${actualResult.fellBack}, body=${body.slice(0, 300)}`
+    );
   }
   const actualHtml = await actualRes.text();
   const resultMatch = actualHtml.match(
-    /window\.location\.href\s*=\s*"([^"]*)"/
+    /window\.location\.href\s*=\s*["']([^"']*)["']/
   );
   if (!resultMatch) {
-    throw new Error("无法从 paym 登录页解析跳转地址");
+    throw new Error(
+      `无法从 paym 登录页解析跳转地址, html片段: ${actualHtml.slice(0, 500)}`
+    );
   }
 
-  const tokenRes = (
-    await fetchWithUpgrade(jar, resultMatch[1], {
-      headers: { "User-Agent": USER_AGENT },
-    })
-  ).res;
+  const nextUrl = new URL(resultMatch[1], secondRet).toString();
+
+  const tokenResult = await fetchWithUpgrade(jar, nextUrl, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      Referer: secondRet,
+    },
+  });
+  const tokenRes = tokenResult.res;
   const tokenLink = tokenRes.headers.get("location");
   if (tokenRes.status !== 302 || !tokenLink) {
-    throw new Error(`paym token 获取失败: status=${tokenRes.status}`);
+    const body = await tokenRes.text().catch(() => "");
+    throw new Error(
+      `paym token 获取失败: status=${tokenRes.status}, location=${tokenLink}, upgraded=${tokenResult.upgraded}, fellBack=${tokenResult.fellBack}, body=${body.slice(0, 300)}`
+    );
   }
 
-  const tokenUrl = new URL(tokenLink);
+  const tokenUrl = new URL(tokenLink, nextUrl);
   const token = tokenUrl.searchParams.get("token");
   if (!token) {
-    throw new Error("paym 回调中未找到 token 参数");
+    throw new Error(
+      `paym 回调中未找到 token 参数, tokenLink=${tokenLink}, params=${Array.from(tokenUrl.searchParams.entries()).map(([k, v]) => `${k}=${v}`).join("&")}`
+    );
   }
 
   return { token };
