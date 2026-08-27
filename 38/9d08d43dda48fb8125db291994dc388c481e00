@@ -1,0 +1,32 @@
+poc/src/app.ts
+  s_9ee0d6ccd22444::t_3b1dd884885a96 107-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "389d08d43dda48fb8125db291994dc388c481e00",
+  "prompts": {},
+  "sessions": {
+    "s_9ee0d6ccd22444": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a8ff3dfd929b3de83b1126d",
+        "model": "Doubao-Seed-Evolving__dev"
+      },
+      "human_author": "A-n-k-a <47747022+A-n-k-a@users.noreply.github.com>",
+      "custom_attributes": {
+        "tool_id": "Edit",
+        "source_scene": "unknown",
+        "external_session_id": "6a8ff3dfd929b3de83b1126d",
+        "dedupe_key": "6a8ff3dfd929b3de83b1126d:6a903e56d929b3de83b11673:afterEdit:861349c3",
+        "tool_use_id": "6a903e56d929b3de83b11673",
+        "session_id": "6a8ff3dfd929b3de83b1126d",
+        "operation_id": "6a903e56d929b3de83b11673",
+        "runtime_client": "trae-tob-git-ai",
+        "tool_type": "agent",
+        "client_type": "ide",
+        "edit_kind": "file_edit"
+      }
+    }
+  }
+}
