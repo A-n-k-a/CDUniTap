@@ -104,6 +104,8 @@ app.post("/auth/login", async (c) => {
       401
     );
   }
+  const cookieStr = result.jar.serialize();
+  c.header("X-Auth-Cookies", cookieStr);
   return c.json({
     success: true,
     studentId: result.studentId,
