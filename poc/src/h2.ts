@@ -184,7 +184,13 @@ async function toH2Response(
 ): Promise<H2Response> {
   const buf = Buffer.from(await res.arrayBuffer());
   const headers = new Headers();
-  res.headers.forEach((value, key) => headers.set(key, value));
+  res.headers.forEach((value, key) => {
+    if (key === "set-cookie") return;
+    headers.set(key, value);
+  });
+  for (const sc of res.headers.getSetCookie()) {
+    headers.append("set-cookie", sc);
+  }
   return {
     status: res.status,
     ok: res.ok,
