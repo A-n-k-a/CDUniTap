@@ -1,0 +1,36 @@
+poc/src/app.ts
+  s_9ee0d6ccd22444::t_e71b1e3763ee4a 1
+  s_9ee0d6ccd22444::t_3a3ea11e07ef63 85
+  s_9ee0d6ccd22444::t_9b44893543e85f 10,39-42,86-94,110,115-117,120-121,138,154-156,160,162-163
+poc/src/http.ts
+  s_9ee0d6ccd22444::t_deaa383ae76720 100-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "6ff5051696bbb1a87fd83db80609deb57c69d769",
+  "prompts": {},
+  "sessions": {
+    "s_9ee0d6ccd22444": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a8ff3dfd929b3de83b1126d",
+        "model": "Doubao-Seed-Evolving__dev"
+      },
+      "human_author": "A-n-k-a <47747022+A-n-k-a@users.noreply.github.com>",
+      "custom_attributes": {
+        "edit_kind": "file_edit",
+        "external_session_id": "6a8ff3dfd929b3de83b1126d",
+        "tool_id": "Edit",
+        "client_type": "ide",
+        "tool_type": "agent",
+        "session_id": "6a8ff3dfd929b3de83b1126d",
+        "runtime_client": "trae-tob-git-ai",
+        "operation_id": "6a90393fd929b3de83b1162b",
+        "dedupe_key": "6a8ff3dfd929b3de83b1126d:6a90393fd929b3de83b1162b:afterEdit:861349c3",
+        "source_scene": "unknown",
+        "tool_use_id": "6a90393fd929b3de83b1162b"
+      }
+    }
+  }
+}
